@@ -24,7 +24,7 @@ app.use(cors({
     'http://localhost:5174',
     'http://localhost:5175',
     'http://localhost:5002',
-    'https://your-frontend.onrender.com' // TODO: Replace with your actual frontend Render URL
+    'https://healthcare-1-fpvt.onrender.com' // TODO: Replace with your actual frontend Render URL
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
