@@ -1,0 +1,16 @@
+# MongoDB Configuration Template
+# Create a .env file in your project root with these variables:
+
+# MongoDB Connection
+VITE_MONGODB_URI=mongodb://localhost:27017
+VITE_MONGODB_DB_NAME=heal-together
+
+# JWT Secret (change this to a secure random string in production)
+VITE_JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+
+# Your MongoDB setup is now configured!
+# Make sure to:
+# 1. Install MongoDB locally or use MongoDB Atlas
+# 2. Create the database 'heal-together'
+# 3. Set up proper authentication if needed
+# 4. Change the JWT_SECRET to a secure random string 

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: green;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            color: red;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .info {
+            color: #0c5460;
+            background: #d1ecf1;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Authentication Test</h1>
+    
+    <div class="container">
+        <h2>1. Test MongoDB Connection</h2>
+        <button onclick="testConnection()">Test Connection</button>
+        <div id="connectionResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>2. Register New User</h2>
+        <div class="form-group">
+            <label for="regName">Name:</label>
+            <input type="text" id="regName" placeholder="Enter name" value="Test User">
+        </div>
+        <div class="form-group">
+            <label for="regEmail">Email:</label>
+            <input type="email" id="regEmail" placeholder="Enter email" value="test@example.com">
+        </div>
+        <div class="form-group">
+            <label for="regPassword">Password:</label>
+            <input type="password" id="regPassword" placeholder="Enter password" value="password123">
+        </div>
+        <div class="form-group">
+            <label for="regRole">Role:</label>
+            <select id="regRole">
+                <option value="patient">Patient</option>
+                <option value="doctor">Doctor</option>
+                <option value="caretaker">Caretaker</option>
+            </select>
+        </div>
+        <button onclick="registerUser()">Register</button>
+        <div id="registerResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>3. Login</h2>
+        <div class="form-group">
+            <label for="loginEmail">Email:</label>
+            <input type="email" id="loginEmail" placeholder="Enter email" value="test@example.com">
+        </div>
+        <div class="form-group">
+            <label for="loginPassword">Password:</label>
+            <input type="password" id="loginPassword" placeholder="Enter password" value="password123">
+        </div>
+        <button onclick="loginUser()">Login</button>
+        <div id="loginResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>4. Test Protected Endpoints</h2>
+        <button onclick="getCurrentUser()">Get Current User</button>
+        <button onclick="getAllUsers()">Get All Users</button>
+        <button onclick="getAppointments()">Get Appointments</button>
+        <button onclick="logout()">Logout</button>
+        <div id="protectedResult"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        function showResult(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${isError ? 'error' : 'success'}">${message}</div>`;
+        }
+
+        function showInfo(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="info">${message}</div>`;
+        }
+
+        async function makeRequest(endpoint, options = {}) {
+            const token = localStorage.getItem('authToken');
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` }),
+                    ...options.headers,
+                },
+                ...options,
+            };
+
+            const response = await fetch(`${API_BASE}${endpoint}`, config);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || `HTTP ${response.status}`);
+            }
+            
+            return data;
+        }
+
+        async function testConnection() {
+            try {
+                const result = await makeRequest('/test', {}, false);
+                showResult('connectionResult', `✅ ${result.message}<br>Database: ${result.database}<br>Time: ${result.timestamp}`);
+            } catch (error) {
+                showResult('connectionResult', `❌ Connection failed: ${error.message}`, true);
+            }
+        }
+
+        async function registerUser() {
+            try {
+                const userData = {
+                    name: document.getElementById('regName').value,
+                    email: document.getElementById('regEmail').value,
+                    password: document.getElementById('regPassword').value,
+                    role: document.getElementById('regRole').value
+                };
+
+                const result = await makeRequest('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify(userData)
+                }, false);
+
+                localStorage.setItem('authToken', result.token);
+                showResult('registerResult', `✅ Registration successful!<br>User: ${result.user.name}<br>Role: ${result.user.role}<br>Token stored.`);
+            } catch (error) {
+                showResult('registerResult', `❌ Registration failed: ${error.message}`, true);
+            }
+        }
+
+        async function loginUser() {
+            try {
+                const loginData = {
+                    email: document.getElementById('loginEmail').value,
+                    password: document.getElementById('loginPassword').value
+                };
+
+                const result = await makeRequest('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify(loginData)
+                }, false);
+
+                localStorage.setItem('authToken', result.token);
+                showResult('loginResult', `✅ Login successful!<br>User: ${result.user.name}<br>Role: ${result.user.role}<br>Token stored.`);
+            } catch (error) {
+                showResult('loginResult', `❌ Login failed: ${error.message}`, true);
+            }
+        }
+
+        async function getCurrentUser() {
+            try {
+                const user = await makeRequest('/auth/me');
+                showResult('protectedResult', `✅ Current user: ${user.name} (${user.role})`);
+            } catch (error) {
+                showResult('protectedResult', `❌ Get current user failed: ${error.message}`, true);
+            }
+        }
+
+        async function getAllUsers() {
+            try {
+                const users = await makeRequest('/users');
+                showResult('protectedResult', `✅ Found ${users.length} users`);
+            } catch (error) {
+                showResult('protectedResult', `❌ Get users failed: ${error.message}`, true);
+            }
+        }
+
+        async function getAppointments() {
+            try {
+                const appointments = await makeRequest('/appointments');
+                showResult('protectedResult', `✅ Found ${appointments.length} appointments`);
+            } catch (error) {
+                showResult('protectedResult', `❌ Get appointments failed: ${error.message}`, true);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            showInfo('protectedResult', '🔓 Logged out. Token removed from localStorage.');
+        }
+
+        // Auto-test connection on page load
+        window.onload = function() {
+            testConnection();
+        };
+    </script>
+</body>
+</html> 
